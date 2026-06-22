@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPON ONT Provisioning</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f4;
+    --surface: #ffffff;
+    --surface2: #f9f9f8;
+    --border: #e2e0db;
+    --border2: #d0cdc7;
+    --text: #1a1917;
+    --text2: #6b6860;
+    --text3: #9e9b94;
+    --accent: #1a4ed8;
+    --accent-bg: #eff4ff;
+    --accent-text: #1e3a8a;
+    --green: #166534;
+    --green-bg: #f0fdf4;
+    --red: #991b1b;
+    --red-bg: #fef2f2;
+    --mono: 'Courier New', 'Consolas', monospace;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: #1a1917;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo svg { width: 18px; height: 18px; }
+
+  header h1 { font-size: 15px; font-weight: 600; }
+  header span { font-size: 13px; color: var(--text2); }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  /* Mode Switcher */
+  .mode-switcher {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 6px;
+    margin-bottom: 18px;
+    width: 100%;
+  }
+
+  .mode-btn {
+    flex: 1;
+    height: 44px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text2);
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+
+  .mode-btn.active {
+    background: #1a1917;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  }
+
+  .mode-btn:not(.active):hover {
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .mode-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  .mode-btn.active .mode-badge { background: rgba(255,255,255,.18); color: #fff; }
+  .mode-btn:not(.active) .mode-badge { background: var(--bg); color: var(--text2); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    margin-bottom: 14px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .card-icon {
+    width: 28px; height: 28px;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+  .span2 { grid-column: span 2; }
+  .span3 { grid-column: span 3; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+
+  .field label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+  }
+
+  .field input, .field select {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13.5px;
+    font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+    width: 100%;
+  }
+
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,78,216,.1);
+  }
+
+  .field input::placeholder { color: var(--text3); }
+
+  .field input.error, .field select.error { border-color: #dc2626; }
+  .err-msg { font-size: 11px; color: #dc2626; display: none; }
+  .err-msg.show { display: block; }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* Section that shows/hides based on mode */
+  .sme-only { display: none; }
+  .ent-only { display: none; }
+  body.mode-sme .sme-only { display: block; }
+  body.mode-ent .ent-only { display: block; }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 6px;
+  }
+
+  .btn {
+    height: 38px;
+    padding: 0 18px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13.5px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn:active { transform: scale(.98); }
+
+  .btn-primary {
+    background: #1a1917;
+    color: #fff;
+    border-color: #1a1917;
+  }
+  .btn-primary:hover { background: #333; border-color: #333; }
+
+  /* Output section */
+  .output-wrap { display: none; margin-top: 6px; }
+  .output-wrap.visible { display: block; }
+
+  .success-banner {
+    background: var(--green-bg);
+    border: 1px solid #bbf7d0;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: var(--green);
+    font-weight: 500;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3px;
+    width: fit-content;
+    margin-bottom: 12px;
+  }
+
+  .tab {
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text2);
+    cursor: pointer;
+    font-weight: 500;
+    transition: background .1s, color .1s;
+  }
+  .tab.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+
+  .out-block {
+    background: #1a1917;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .out-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #333;
+  }
+
+  .out-label-text {
+    font-size: 12px;
+    color: #9e9b94;
+    font-family: var(--mono);
+  }
+
+  .copy-btn {
+    background: #333;
+    border: 1px solid #444;
+    color: #ccc;
+    border-radius: 5px;
+    padding: 3px 12px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .copy-btn:hover { background: #444; }
+  .copy-btn.copied { background: #166534; border-color: #166534; color: #fff; }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: #e8e5df;
+    padding: 16px 18px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-x: auto;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .vlan-select { color: grey; }
+  .vlan-select.has-value { color: black; }
+
+  @media (max-width: 600px) {
+    .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
+    .span2, .span3 { grid-column: span 1; }
+    header h1 { font-size: 14px; }
+    pre { font-size: 11px; }
+  }
+</style>
+</head>
+<body class="mode-sme">
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <path d="M8 21h8M12 17v4"/>
+      <path d="M6 8h.01M10 8h.01"/>
+    </svg>
+  </div>
+  <div>
+    <h1>GPON ONT Provisioning</h1>
+  </div>
+  <span style="margin-left:auto" id="header-label">SME OLTs</span>
+</header>
+
+<main>
+
+  <!-- Mode Switcher -->
+  <div class="mode-switcher">
+    <button class="mode-btn active" id="btn-sme" onclick="setMode('sme')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      SME Provisioning
+      <span class="mode-badge">PPPoE</span>
+    </button>
+    <button class="mode-btn" id="btn-ent" onclick="setMode('ent')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+      Enterprise Provisioning
+      <span class="mode-badge">Static IP</span>
+    </button>
+  </div>
+
+  <!-- ===== SHARED: ONT Identity ===== -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📡</div>
+      <span class="card-title">ONT Identity</span>
+    </div>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="field">
+        <label>ONU Serial Number *</label>
+        <input id="onu_sn" placeholder="e.g. 48575443XXXXXXXX" />
+        <span class="err-msg" id="err_sn">Required</span>
+      </div>
+      <div class="field span2">
+        <label id="desc-label">Description — Circuit ID, Customer Name, Speed *</label>
+        <input id="desc" placeholder='e.g. SM001386, Gamigo Philippines Incorporated, 200M' />
+        <span class="err-msg" id="err_desc">Required</span>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="field">
+        <label>Frame / Slot (e.g. 0/1) *</label>
+        <input id="fs" placeholder="0/1" />
+        <span class="err-msg" id="err_fs">Required, format: 0/1</span>
+      </div>
+      <div class="field">
+        <label>Port *</label>
+        <input id="port" type="number" min="0" max="15" placeholder="0" />
+        <span class="err-msg" id="err_port">Required</span>
+      </div>
+      <div class="field">
+        <label>ONT ID *</label>
+        <input id="ontid" type="number" min="0" max="127" placeholder="0" />
+        <span class="err-msg" id="err_ontid">Required</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SHARED: Profiles ===== -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">⚙️</div>
+      <span class="card-title">Profiles</span>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label>Line Profile *</label>
+        <select id="lineprof">
+          <option value="305">305 — biz-50m-line</option>
+          <option value="310">310 — biz-100m-line</option>
+          <option value="315">315 — biz-150m-line</option>
+          <option value="320">320 — biz-200m-line</option>
+          <option value="325">325 — sme-100m-line</option>
+          <option value="326">326 — sme-200m-line</option>
+          <option value="330">330 — aggregate-sme-200m-line</option>
+          <option value="340">340 — biz-300m-line</option>
+          <option value="350">350 — free-wifi-20m</option>
+          <option value="360">360 — wireless-200m</option>
+          <option value="370">370 — biz-500m-line</option>
+          <option value="375">375 — biz-500m-line (ent)</option>
+          <option value="376">376 — biz-600m-line</option>
+          <option value="380">380 — aggregate-sme-300m-line</option>
+          <option value="381">381 — aggregate-sme-600m-line</option>
+          <option value="385">385 — biz-400m-line</option>
+          <option value="390">390 — biz-1G-line</option>
+          <option value="391">391 — biz-1500m-line</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Service Profile *</label>
+        <select id="srvprof">
+          <option value="95">95 — aggregate-biz-sme-ont</option>
+          <option value="105" selected>105 — biz-sme-ont</option>
+          <option value="110">110 — biz-ll-ont</option>
+          <option value="120">120 — free-wifi-ont</option>
+          <option value="130">130 — wireless-ont</option>
+          <option value="140">140 — mikrotik</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SHARED: Service Ports & Traffic ===== -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔀</div>
+      <span class="card-title">Service Ports &amp; Traffic</span>
+    </div>
+    <div class="grid4" style="margin-bottom:0">
+      <div class="field">
+        <label>OLT Service Port *</label>
+        <input id="svcport1" type="number" placeholder="e.g. 2351" />
+        <span class="err-msg" id="err_sp1">Required</span>
+      </div>
+      <div class="field">
+        <label id="vlan-label">SME Internet VLAN *</label>
+        <select id="smevlan" class="vlan-select" required onchange="this.classList.add('has-value')">
+          <option value="" disabled selected>Choose VLAN</option>
+          <option value="412" data-olt="boni-olt1">Vlan 412 — boni-olt1</option>
+          <option value="413" data-olt="810b-olt1">Vlan 413 — 810b-olt1</option>
+          <option value="414" data-olt="den1-olt1">Vlan 414 — den1-olt1</option>
+          <option value="411" data-olt="c7bc-olt1">Vlan 411 — c7bc-olt1</option>
+          <option value="417" data-olt="c7bc-olt2">Vlan 417 — c7bc-olt2</option>
+          <option value="410" data-olt="jysq-olt1">Vlan 410 — jysq-olt1</option>
+          <option value="413" data-olt="baih-olt1">Vlan 413 — baih-olt1</option>
+          <option value="419" data-olt="cena-olt1">Vlan 419 — cena-olt1</option>
+          <option value="412" data-olt="czt1-olt1">Vlan 412 — czt1-olt1</option>
+          <option value="414" data-olt="mep1-olt1">Vlan 414 — mep1-olt1</option>
+          <option value="415" data-olt="mep2-olt1">Vlan 415 — mep2-olt1</option>
+          <option value="410" data-olt="twof-olt1">Vlan 410 — twof-olt1</option>
+          <option value="412" data-olt="damo-olt1">Vlan 412 — damo-olt1</option>
+          <option value="410" data-olt="gdv1-olt1">Vlan 410 — gdv1-olt1</option>
+          <option value="411" data-olt="ma88-olt1">Vlan 411 — ma88-olt1</option>
+        </select>
+        <span class="err-msg" id="err_smevlan">Required</span>
+      </div>
+      <div class="field">
+        <label>Inbound traffic index (UL) *</label>
+        <input id="speedup" type="number" min="0" placeholder="0" />
+        <span class="err-msg" id="err_speedup">Required</span>
+      </div>
+      <div class="field">
+        <label>Outbound traffic index (DL) *</label>
+        <input id="speeddown" type="number" min="0" placeholder="0" />
+        <span class="err-msg" id="err_speeddown">Required</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SME ONLY: PPPoE & IP ===== -->
+  <div class="sme-only">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🌐</div>
+        <span class="card-title">SME PPPoE &amp; IP</span>
+      </div>
+      <div class="grid4">
+        <div class="field">
+          <label>SME Plan</label>
+          <select id="smeplan">
+            <option value="a">a — SME20</option>
+            <option value="b">b — SME30</option>
+            <option value="c">c — SME50</option>
+            <option value="d">d — SME100</option>
+            <option value="e">e — SME200</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>PPPoE Username</label>
+          <input id="pppoeuser" placeholder="e.g. customer@sme" />
+        </div>
+        <div class="field">
+          <label>PPPoE Password</label>
+          <input id="pppoepw" placeholder="password" />
+        </div>
+        <div class="field">
+          <label>IP Address (/32)</label>
+          <input id="sme_ip" placeholder="e.g. 10.10.10.1" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ENTERPRISE ONLY: Router & Switch Config ===== -->
+  <div class="ent-only">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🏢</div>
+        <span class="card-title">Enterprise — Core Router (c7bc-cor1)</span>
+      </div>
+      <div class="grid4" style="margin-bottom:12px">
+        <div class="field">
+          <label>Logical Interface (unit) *</label>
+          <input id="ent_unit" type="number" placeholder="e.g. 1155" />
+          <span class="err-msg" id="err_ent_unit">Required</span>
+        </div>
+        <div class="field">
+          <label>AE Interface</label>
+          <input id="ent_ae" placeholder="e.g. ae10" value="ae10" />
+        </div>
+        <div class="field">
+          <label>CIR Speed *</label>
+          <input id="ent_cir" placeholder="e.g. 500m" />
+          <span class="err-msg" id="err_ent_cir">Required</span>
+        </div>
+        <div class="field">
+          <label>Rate Limit (Mbps) *</label>
+          <input id="ent_rate" placeholder="e.g. 500Mbps" />
+          <span class="err-msg" id="err_ent_rate">Required</span>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>IP Address (with prefix) *</label>
+          <input id="ent_ip" placeholder="e.g. 203.28.67.161/29" />
+          <span class="err-msg" id="err_ent_ip">Required</span>
+        </div>
+        <div class="field">
+          <label>Input Filter</label>
+          <input id="ent_filter" placeholder="e.g. block_25_enterprise" value="block_25_enterprise" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🔌</div>
+        <span class="card-title">Enterprise — Switch (c7bc-sw1)</span>
+      </div>
+      <div class="grid3">
+        <div class="field">
+          <label>VLAN Name *</label>
+          <input id="ent_vlanname" placeholder="e.g. v1155-Alfa" />
+          <span class="err-msg" id="err_ent_vlanname">Required</span>
+        </div>
+        <div class="field">
+          <label>Switch Interface 1 *</label>
+          <input id="ent_sw1" placeholder="e.g. xe-0/0/23" />
+          <span class="err-msg" id="err_ent_sw1">Required</span>
+        </div>
+        <div class="field">
+          <label>Switch Interface 2 *</label>
+          <input id="ent_sw2" placeholder="e.g. xe-1/0/17" />
+          <span class="err-msg" id="err_ent_sw2">Required</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📶</div>
+        <span class="card-title">Enterprise — OLT VLAN Ports</span>
+      </div>
+      <div class="grid4">
+        <div class="field">
+          <label>OLT VLAN Port 1 (frame/port) *</label>
+          <input id="ent_vp1" placeholder="e.g. 0/9" />
+          <span class="err-msg" id="err_ent_vp1">Required</span>
+        </div>
+        <div class="field">
+          <label>VLAN Port 1 ONT</label>
+          <input id="ent_vp1_ont" type="number" placeholder="0" value="0" />
+        </div>
+        <div class="field">
+          <label>OLT VLAN Port 2 (frame/port)</label>
+          <input id="ent_vp2" placeholder="e.g. 0/9" />
+        </div>
+        <div class="field">
+          <label>VLAN Port 2 ONT</label>
+          <input id="ent_vp2_ont" type="number" placeholder="1" value="1" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-primary" onclick="generate()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Generate configs
+    </button>
+    <button class="btn" onclick="clearAll()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Clear all
+    </button>
+  </div>
+
+  <!-- Output -->
+  <div class="output-wrap" id="out-wrap">
+    <div style="height:24px"></div>
+    <div class="success-banner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Configs generated — copy and paste into your terminal.
+    </div>
+
+    <!-- SME tabs -->
+    <div id="sme-tabs-wrap">
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('olt', this)">OLT config</button>
+        <button class="tab" onclick="showTab('sme', this)">SME script</button>
+        <button class="tab" onclick="showTab('all', this)">Combined</button>
+      </div>
+      <div id="tab-olt">
+        <div class="out-block">
+          <div class="out-topbar">
+            <span class="out-label-text" id="olt-label">OLT — access commands</span>
+            <button class="copy-btn" id="copy-olt" onclick="copyBlock('pre-olt', 'copy-olt')">Copy</button>
+          </div>
+          <pre id="pre-olt"></pre>
+        </div>
+      </div>
+      <div id="tab-sme" style="display:none">
+        <div class="out-block">
+          <div class="out-topbar">
+            <span class="out-label-text">sme-script — cebu-perf1</span>
+            <button class="copy-btn" id="copy-sme" onclick="copyBlock('pre-sme', 'copy-sme')">Copy</button>
+          </div>
+          <pre id="pre-sme"></pre>
+        </div>
+      </div>
+      <div id="tab-all" style="display:none">
+        <div class="out-block">
+          <div class="out-topbar">
+            <span class="out-label-text">full provisioning config</span>
+            <button class="copy-btn" id="copy-all" onclick="copyBlock('pre-all', 'copy-all')">Copy</button>
+          </div>
+          <pre id="pre-all"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enterprise blocks (3 separate copyable blocks) -->
+    <div id="ent-tabs-wrap" style="display:none">
+      <div class="out-block">
+        <div class="out-topbar">
+          <span class="out-label-text">#c7bc-cor1 — core router</span>
+          <button class="copy-btn" id="copy-cor" onclick="copyBlock('pre-cor', 'copy-cor')">Copy</button>
+        </div>
+        <pre id="pre-cor"></pre>
+      </div>
+      <div class="out-block">
+        <div class="out-topbar">
+          <span class="out-label-text">#c7bc-sw1 — switch</span>
+          <button class="copy-btn" id="copy-sw" onclick="copyBlock('pre-sw', 'copy-sw')">Copy</button>
+        </div>
+        <pre id="pre-sw"></pre>
+      </div>
+      <div class="out-block">
+        <div class="out-topbar">
+          <span class="out-label-text" id="olt-ent-label">OLT — access commands</span>
+          <button class="copy-btn" id="copy-olt-ent" onclick="copyBlock('pre-olt-ent', 'copy-olt-ent')">Copy</button>
+        </div>
+        <pre id="pre-olt-ent"></pre>
+      </div>
+    </div>
+
+    <p class="hint">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      VLAN 320 = management &nbsp;|&nbsp; GEMport 1 = data (SME), GEMport 2 = data (Ent), GEMport 3 = mgmt
+    </p>
+  </div>
+
+</main>
+
+<script>
+  var currentMode = 'sme';
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.body.className = 'mode-' + mode;
+    document.getElementById('btn-sme').classList.toggle('active', mode === 'sme');
+    document.getElementById('btn-ent').classList.toggle('active', mode === 'ent');
+    document.getElementById('header-label').textContent = mode === 'sme' ? 'SME OLTs' : 'Enterprise OLTs';
+    document.getElementById('vlan-label').textContent = mode === 'sme' ? 'SME Internet VLAN *' : 'Enterprise VLAN *';
+    // Hide output when switching mode
+    document.getElementById('out-wrap').classList.remove('visible');
+  }
+
+  function v(id) { return document.getElementById(id).value.trim(); }
+
+  function setErr(id, show) {
+    var el = document.getElementById('err_' + id);
+    var inp = document.getElementById(id);
+    if (el) el.classList.toggle('show', show);
+    if (inp) inp.classList.toggle('error', show);
+  }
+
+  function getSelectedOlt() {
+    var sel = document.getElementById('smevlan');
+    var opt = sel.options[sel.selectedIndex];
+    return opt ? (opt.getAttribute('data-olt') || '') : '';
+  }
+
+  function validate() {
+    var ok = true;
+    // Shared required fields
+    var shared = [
+      ['onu_sn', 'sn'], ['desc', 'desc'], ['fs', 'fs'],
+      ['port', 'port'], ['ontid', 'ontid'], ['smevlan', 'smevlan'],
+      ['svcport1', 'sp1'], ['speedup', 'speedup'], ['speeddown', 'speeddown']
+    ];
+    shared.forEach(function(r) {
+      var empty = !v(r[0]);
+      setErr(r[0], empty);
+      if (empty) ok = false;
+    });
+
+    if (currentMode === 'ent') {
+      var entRequired = [
+        ['ent_unit', 'ent_unit'], ['ent_cir', 'ent_cir'], ['ent_rate', 'ent_rate'],
+        ['ent_ip', 'ent_ip'], ['ent_vlanname', 'ent_vlanname'],
+        ['ent_sw1', 'ent_sw1'], ['ent_sw2', 'ent_sw2'], ['ent_vp1', 'ent_vp1']
+      ];
+      entRequired.forEach(function(r) {
+        var empty = !v(r[0]);
+        setErr(r[0], empty);
+        if (empty) ok = false;
+      });
+    }
+    return ok;
+  }
+
+  function generate() {
+    if (!validate()) return;
+
+    var sn = v('onu_sn'), desc = v('desc'),
+        fs = v('fs'), port = v('port'), ontid = v('ontid'),
+        lineprof = v('lineprof'), srvprof = v('srvprof'),
+        svcport1 = v('svcport1'), smevlan = v('smevlan'),
+        speedup = v('speedup'), speeddown = v('speeddown');
+
+    var fsp = fs + '/' + port;
+    var svcport2 = String(parseInt(svcport1) + 1);
+    var oltName = getSelectedOlt();
+
+    if (currentMode === 'sme') {
+      var pppoeuser = v('pppoeuser'), pppoepw = v('pppoepw'),
+          ip = v('sme_ip'), smeplan = v('smeplan');
+      var ipCidr = ip ? ip + '/32' : '<IP>/32';
+
+      var olt =
+        '### Access OLT SCRIPT ###\n\n' +
+        'config\n' +
+        'interface gpon ' + fs + '\n' +
+        'ont add ' + port + ' ' + ontid +
+          ' sn-auth ' + sn +
+          ' password-auth r1s30n7 omci' +
+          ' ont-lineprofile-id ' + lineprof +
+          ' ont-srvprofile-id ' + srvprof +
+          ' desc "' + desc + '"\n' +
+        'ont port native-vlan ' + port + ' ' + ontid + ' eth 1 vlan 100 priority 1\n' +
+        'Quit\n' +
+        'service-port ' + svcport1 + ' vlan ' + smevlan + ' gpon ' + fsp + ' ont ' + ontid +
+          ' gemport 1 multi-service user-vlan 100 tag-transform translate' +
+          ' inbound traffic-table index ' + speedup +
+          ' outbound traffic-table index ' + speeddown + '\n' +
+        'service-port ' + svcport2 + ' vlan 320 gpon ' + fsp + ' ont ' + ontid +
+          ' gemport 3 multi-service user-vlan 320 tag-transform translate\n' +
+        'service-port desc ' + svcport1 + ' description "' + desc + '"\n' +
+        'Save';
+
+      var sme =
+        '### SME SCRIPT ###\n\n' +
+        'ssh riseops@10.129.2.20\n' +
+        'R1s3Op$$$\n' +
+        'riseops@cebu-perf1:~$ /home/riseops/sme_customer_add.py\n' +
+        'You are about to add a user to the SME SQL database. Do you wish to continue? (y/n)y\n' +
+        'a. SME20\n' +
+        'b. SME30\n' +
+        'c. SME50\n' +
+        'd. SME100\n' +
+        'e. SME200\n' +
+        'Select which SME plan. (a/b/c/d/e)\n\n' +
+        'Select which SME plan. ' + smeplan + '\n' +
+        'What username would you like to add? ' + (pppoeuser || '<PPPOEUSER>') + '\n' +
+        'What password should this user have? ' + (pppoepw || '<PPPOEPASS>') + '\n' +
+        'What IP address should this user have? ' + ipCidr;
+
+      document.getElementById('pre-olt').textContent = olt;
+      document.getElementById('pre-sme').textContent = sme;
+      document.getElementById('pre-all').textContent = olt + '\n\n' + sme;
+      document.getElementById('olt-label').textContent = (oltName || 'olt') + ' — access commands';
+
+      // Reset tabs to OLT
+      showTab('olt', document.querySelector('#sme-tabs-wrap .tab'));
+
+      document.getElementById('sme-tabs-wrap').style.display = 'block';
+      document.getElementById('ent-tabs-wrap').style.display = 'none';
+
+    } else {
+      // Enterprise mode
+      var unit = v('ent_unit'), ae = v('ent_ae') || 'ae10',
+          cir = v('ent_cir'), rate = v('ent_rate'),
+          entIp = v('ent_ip'), filter = v('ent_filter') || 'block_25_enterprise',
+          vlanName = v('ent_vlanname'), sw1 = v('ent_sw1'), sw2 = v('ent_sw2'),
+          vp1 = v('ent_vp1'), vp1ont = v('ent_vp1_ont') || '0',
+          vp2 = v('ent_vp2'), vp2ont = v('ent_vp2_ont') || '1';
+
+      var cor =
+        '#c7bc-cor1\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' apply-macro service-attributes cir ' + cir + '\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' apply-macro service-attributes product-type business-internet\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' description "' + desc + '"\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' vlan-id ' + unit + '\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' family inet rpf-check\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' family inet mtu 1500\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' family inet filter input ' + filter + '\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' family inet policer input rate-limit-' + rate + '\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' family inet policer output rate-limit-' + rate + '\n' +
+        'set interfaces ' + ae + ' unit ' + unit + ' family inet address ' + entIp + '\n' +
+        'set class-of-service interfaces ' + ae + ' unit ' + unit + ' forwarding-class 3-business-low';
+
+      var sw =
+        '#c7bc-sw1\n' +
+        'set interfaces ' + sw1 + ' unit 0 family ethernet-switching vlan members ' + vlanName + '\n' +
+        'set interfaces ' + sw2 + ' unit 0 family ethernet-switching vlan members ' + vlanName + '\n' +
+        'set vlans ' + vlanName + ' vlan-id ' + unit;
+
+      var entOlt =
+        '#' + (oltName || 'olt') + '\n' +
+        'config\n' +
+        'interface gpon ' + fs + '\n' +
+        'ont add ' + port + ' ' + ontid +
+          ' sn-auth ' + sn +
+          ' password-auth r1s30n7 omci' +
+          ' ont-lineprofile-id ' + lineprof +
+          ' ont-srvprofile-id ' + srvprof +
+          ' desc "' + desc + '"\n' +
+        'ont port native-vlan ' + port + ' ' + ontid + ' eth 1 vlan 200 priority 1\n' +
+        'Quit\n\n' +
+        'vlan ' + smevlan + ' smart\n' +
+        'Port vlan ' + smevlan + ' ' + vp1 + ' ' + vp1ont + '\n' +
+        (vp2 ? 'Port vlan ' + smevlan + ' ' + vp2 + ' ' + vp2ont + '\n' : '') +
+        '\n' +
+        'service-port ' + svcport1 + ' vlan ' + smevlan + ' gpon ' + fsp + ' ont ' + ontid +
+          ' gemport 2 multi-service user-vlan 200 tag-transform translate' +
+          ' inbound traffic-table index ' + speedup +
+          ' outbound traffic-table index ' + speeddown + '\n' +
+        'service-port ' + svcport2 + ' vlan 320 gpon ' + fsp + ' ont ' + ontid +
+          ' gemport 3 multi-service user-vlan 320 tag-transform translate\n' +
+        'service-port desc ' + svcport1 + ' description "' + desc + '"\n' +
+        'Save';
+
+      document.getElementById('pre-cor').textContent = cor;
+      document.getElementById('pre-sw').textContent = sw;
+      document.getElementById('pre-olt-ent').textContent = entOlt;
+      document.getElementById('olt-ent-label').textContent = (oltName || 'olt') + ' — access commands';
+
+      document.getElementById('sme-tabs-wrap').style.display = 'none';
+      document.getElementById('ent-tabs-wrap').style.display = 'block';
+    }
+
+    var wrap = document.getElementById('out-wrap');
+    wrap.classList.add('visible');
+    setTimeout(function() {
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }
+
+  function showTab(t, btn) {
+    document.querySelectorAll('#sme-tabs-wrap .tab').forEach(function(b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    document.getElementById('tab-olt').style.display = t === 'olt' ? 'block' : 'none';
+    document.getElementById('tab-sme').style.display = t === 'sme' ? 'block' : 'none';
+    document.getElementById('tab-all').style.display = t === 'all' ? 'block' : 'none';
+  }
+
+  function copyBlock(preId, btnId) {
+    var text = document.getElementById(preId).textContent;
+    var btn = document.getElementById(btnId);
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+    }).catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+
+  function clearAll() {
+    document.querySelectorAll('input').forEach(function(i) { i.value = ''; i.classList.remove('error'); });
+    document.querySelectorAll('select').forEach(function(s) {
+      s.selectedIndex = 0;
+      s.classList.remove('has-value', 'error');
+    });
+    document.querySelectorAll('.err-msg').forEach(function(e) { e.classList.remove('show'); });
+    document.getElementById('out-wrap').classList.remove('visible');
+    // Restore defaults
+    document.getElementById('ent_ae').value = 'ae10';
+    document.getElementById('ent_filter').value = 'block_25_enterprise';
+    document.getElementById('ent_vp1_ont').value = '0';
+    document.getElementById('ent_vp2_ont').value = '1';
+  }
+</script>
+</body>
+</html>
